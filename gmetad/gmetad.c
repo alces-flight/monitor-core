@@ -304,7 +304,7 @@ write_root_summary(datum_t *key, datum_t *val, void *arg)
    char sum[256];
    char num[256];
    Metric_t *metric;
-#ifndef AGG
+#ifndef GROUP_AGGS
    int rc;
 #endif
    struct type_tag *tt;
@@ -344,7 +344,7 @@ write_root_summary(datum_t *key, datum_t *val, void *arg)
 
    debug_msg("Writing Root Summary data for metric %s", name);
 
-#ifndef AGG
+#ifndef GROUP_AGGS
    rc = write_data_to_rrd( NULL, NULL, name, sum, num, 15, 0, metric->slope);
    if (rc)
       {

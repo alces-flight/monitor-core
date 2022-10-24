@@ -88,7 +88,7 @@ reconnect:
       }
 
    cmd = calloc(1, strlen(rrd) + 128);
-#ifdef AGG
+#ifdef GROUP_AGGS
    if (num)
          sprintf(cmd, "UPDATE %s %u:%s:%s:%s:%s:%s\n", rrd, process_time, sum.agg_val, sum.agg_num, sum.agg_min, sum.agg_max, num);
    else
@@ -211,7 +211,7 @@ RRD_update( char *rrd, valinfo sum, const char *num, unsigned int process_time )
    char val[128];
 
    /* If we are a host RRD, we "sum" over only one host. */
-#ifdef AGG
+#ifdef GROUP_AGGS
    if (num)
       sprintf(val, "%u:%s:%s:%s:%s:%s", process_time, sum.agg_val, sum.agg_num, sum.agg_min, sum.agg_max, num);
    else
@@ -253,7 +253,7 @@ RRD_create( char *rrd, int summary, unsigned int step,
    int  argc=0;
    int heartbeat;
    char s[16], start[64];
-#ifdef AGG
+#ifdef GROUP_AGGS
    char agg_val[64];
    char agg_num[64];
    char agg_min[64];
@@ -292,7 +292,7 @@ RRD_create( char *rrd, int summary, unsigned int step,
    argv[argc++] = "--start";
    sprintf(start, "%u", process_time-1);
    argv[argc++] = start;
-#ifdef AGG
+#ifdef GROUP_AGGS
    sprintf(agg_val,"DS:sum:%s:%d:U:U", data_source_type, heartbeat);
    argv[argc++] = agg_val;
    sprintf(agg_num,"DS:num:%s:%d:U:U", data_source_type, heartbeat);

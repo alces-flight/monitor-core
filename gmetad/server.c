@@ -293,7 +293,7 @@ metric_report_start(Generic_t *self, datum_t *key, client_t *client, void *arg)
    char *b = buf;
    #define xml_print(client, ...) 0; b += snprintf(b, sizeof(buf) - (b - buf), __VA_ARGS__);
 
-#ifdef AGG
+#ifdef GROUP_AGGS
    rc=xml_print(client, "<METRIC NAME=\"%s\" AGG_VAL=\"%s\" AGG_NUM=\"%s\" AGG_MIN=\"%s\" AGG_MAX=\"%s\" TYPE=\"%s\" "
       "UNITS=\"%s\" TN=\"%u\" TMAX=\"%u\" DMAX=\"%u\" SLOPE=\"%s\" "
       "SOURCE=\"%s\">\n",

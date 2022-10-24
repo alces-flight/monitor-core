@@ -121,7 +121,7 @@ fillmetric(const char** attr, Metric_t *metric, const char* type)
                      }
                   metric->valstr = addstring(metric->strings, &edge, metricval);
                   break;
-#ifdef AGG
+#ifdef GROUP_AGGS
                case AGG_VAL_TAG:
                   metricval = (char*) attr[i+1];
                   tt = in_type_list(type, strlen(type));
@@ -690,7 +690,7 @@ startElement_METRIC(void *data, const char *el, const char **attr)
    ganglia_slope_t slope = GANGLIA_SLOPE_UNSPECIFIED;
    struct xml_tag *xt;
    struct type_tag *tt;
-#ifndef AGG
+#ifndef GROUP_AGGS
    datum_t *hash_datum = NULL;
 #endif
    datum_t *rdatum;
@@ -699,7 +699,7 @@ startElement_METRIC(void *data, const char *el, const char **attr)
    const char *type = NULL;
    const char *units = NULL;
    int do_summary;
-#ifdef AGG
+#ifdef GROUP_AGGS
    int i, edge;
    valinfo metricval;
 #else
@@ -724,7 +724,7 @@ startElement_METRIC(void *data, const char *el, const char **attr)
                   hashkey.data = (void*) name;
                   hashkey.size =  strlen(name) + 1;
                   break;
-#ifdef AGG
+#ifdef GROUP_AGGS
                case AGG_VAL_TAG:
                   metricval.agg_val = attr[i+1];
                   break;
@@ -827,7 +827,7 @@ startElement_METRIC(void *data, const char *el, const char **attr)
                      xmldata->rval = write_data_to_rrd(xmldata->sourcename,
                         xmldata->hostname, name, metricval, NULL,
                         xmldata->ds->step, xmldata->source.localtime, slope);
-#ifndef AGG
+#ifndef GROUP_AGGS
 		  if (gmetad_config.carbon_server) // if the user has specified a carbon server, send the metric to carbon as well
                      carbon_ret=write_data_to_carbon(xmldata->sourcename, xmldata->hostname, name, metricval,xmldata->source.localtime);
 #endif
@@ -859,7 +859,7 @@ startElement_METRIC(void *data, const char *el, const char **attr)
       }
 
    /* Always update summary for numeric metrics. */
-#ifndef AGG
+#ifndef GROUP_AGGS
    if (do_summary)
       {
          summary = xmldata->source.metric_summary_pending;
@@ -1247,7 +1247,7 @@ finish_processing_source(datum_t *key, datum_t *val, void *arg)
 {
    xmldata_t *xmldata = (xmldata_t *) arg;
    char *name, *type;
-#ifdef AGG
+#ifdef GROUP_AGGS
    char agg_val[512];
    char agg_num[512];
    char agg_min[512];
@@ -1282,7 +1282,7 @@ finish_processing_source(datum_t *key, datum_t *val, void *arg)
    if (gmetad_config.unsummarized_sflow_vm_metrics && (p = strchr(name, '.')) != NULL && *(p+1) == 'v')
        return 0;
 
-#ifdef AGG
+#ifdef GROUP_AGGS
    switch (tt->type)
       {
          case INT:

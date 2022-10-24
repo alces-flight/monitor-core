@@ -14,7 +14,7 @@
 #include "daemon_init.h"
 #include "my_inet_ntop.h"
 
-#ifdef AGG
+#ifdef GROUP_AGGS
 typedef struct {
         const char *agg_val;
         const char *agg_num;
@@ -142,7 +142,7 @@ data_source_list_t;
 typedef union
    {
       double d;
-#ifdef AGG
+#ifdef GROUP_AGGS
       double dval, dnum, dmin, dmax;
 #endif
       int str;
@@ -241,7 +241,7 @@ typedef struct
       metric_val_t val;
       short int name;
       short int valstr; /* An optimization to speed queries. */
-#ifdef AGG
+#ifdef GROUP_AGGS
       short int agg_valstr;
       short int agg_numstr;
       short int agg_minstr;

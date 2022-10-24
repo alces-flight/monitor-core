@@ -483,7 +483,7 @@ set_defaults (gmetad_config_t *config)
    config->scalable_mode = 1;
    config->all_trusted = 0;
 
-#ifdef AGG
+#ifdef GROUP_AGGS
    config->num_RRAs = 15;
    config->RRAs[0] = "RRA:AVERAGE:0.5:1:240";
    config->RRAs[1] = "RRA:AVERAGE:0.5:24:240";
