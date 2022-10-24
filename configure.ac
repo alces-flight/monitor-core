@@ -301,6 +301,13 @@ if test x"$gmetad" = xyes; then
    fi
 fi
 
+if test x"$gmetad" = xyes; then
+    AC_ARG_ENABLE(group-aggregations,
+[ --enable-group-aggregations   turn on additional group metric aggregations (e.g., min and max)],
+        [ enable_group_aggregations=yes ],[ enable_group_aggregations=no ])
+    AM_CONDITIONAL(GROUP_AGGS, test x"$enable_group_aggregations" = xyes)
+fi
+
 AC_SUBST(STATIC_USER_MODULES)
 
 if test x"$enable_python" = xyes; then

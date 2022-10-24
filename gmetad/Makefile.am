@@ -11,8 +11,14 @@ GLDADD =
 GLDFLAGS = 
 endif
 
+if GROUP_AGGS
+GAGGCFLAGS = -DAGG
+else
+GAGGCFLAGS =
+endif
+
 INCLUDES = @APR_INCLUDES@
-AM_CFLAGS = -I$(top_builddir)/lib -I$(top_builddir)/gmond -I$(top_builddir)/libmetrics -I$(top_builddir)/include $(GCFLAGS) @PROTOBUF_C_CFLAGS@
+AM_CFLAGS = -I$(top_builddir)/lib -I$(top_builddir)/gmond -I$(top_builddir)/libmetrics -I$(top_builddir)/include $(GCFLAGS) $(GAGGCFLAGS) @PROTOBUF_C_CFLAGS@
 
 sbin_PROGRAMS = gmetad
 
