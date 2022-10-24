@@ -43,7 +43,7 @@ my_mkdir ( const char *dir )
 }
 
 static int
-RRD_update_cached( char *rrd, const char *sum, const char *num, unsigned int process_time )
+RRD_update_cached( char *rrd, valinfo sum, const char *num, unsigned int process_time )
 {
    apr_time_t now, start = apr_time_now();
    int *conn, c, r, off, l, to;
@@ -88,10 +88,17 @@ reconnect:
       }
 
    cmd = calloc(1, strlen(rrd) + 128);
+#ifdef AGG
+   if (num)
+         sprintf(cmd, "UPDATE %s %u:%s:%s:%s:%s:%s\n", rrd, process_time, sum.agg_val, sum.agg_num, sum.agg_min, sum.agg_max, num);
+   else
+         sprintf(cmd, "UPDATE %s %u:%s:%s:%s:%s\n", rrd, process_time, sum.agg_val, sum.agg_num, sum.agg_min, sum.agg_max);
+#else
    if (num)
          sprintf(cmd, "UPDATE %s %u:%s:%s\n", rrd, process_time, sum, num);
    else
          sprintf(cmd, "UPDATE %s %u:%s\n", rrd, process_time, sum);
+#endif
 
    l = strlen(cmd);
    off = 0;
@@ -197,17 +204,24 @@ reconnect:
 }
 
 static int
-RRD_update( char *rrd, const char *sum, const char *num, unsigned int process_time )
+RRD_update( char *rrd, valinfo sum, const char *num, unsigned int process_time )
 {
    char *argv[3];
    int   argc = 3;
    char val[128];
 
    /* If we are a host RRD, we "sum" over only one host. */
+#ifdef AGG
+   if (num)
+      sprintf(val, "%u:%s:%s:%s:%s:%s", process_time, sum.agg_val, sum.agg_num, sum.agg_min, sum.agg_max, num);
+   else
+      sprintf(val, "%u:%s:%s:%s:%s", process_time, sum.agg_val, sum.agg_num, sum.agg_min, sum.agg_max);
+#else
    if (num)
       sprintf(val, "%u:%s:%s", process_time, sum, num);
    else
       sprintf(val, "%u:%s", process_time, sum);
+#endif
 
    argv[0] = "dummy";
    argv[1] = rrd;
@@ -239,7 +253,14 @@ RRD_create( char *rrd, int summary, unsigned int step,
    int  argc=0;
    int heartbeat;
    char s[16], start[64];
+#ifdef AGG
+   char agg_val[64];
+   char agg_num[64];
+   char agg_min[64];
+   char agg_max[64];
+#else
    char sum[64];
+#endif
    char num[64];
    int i;
 
@@ -271,10 +292,21 @@ RRD_create( char *rrd, int summary, unsigned int step,
    argv[argc++] = "--start";
    sprintf(start, "%u", process_time-1);
    argv[argc++] = start;
+#ifdef AGG
+   sprintf(agg_val,"DS:sum:%s:%d:U:U", data_source_type, heartbeat);
+   argv[argc++] = agg_val;
+   sprintf(agg_num,"DS:num:%s:%d:U:U", data_source_type, heartbeat);
+   argv[argc++] = agg_num;
+   sprintf(agg_min,"DS:min:%s:%d:U:U", data_source_type, heartbeat);
+   argv[argc++] = agg_min;
+   sprintf(agg_max,"DS:max:%s:%d:U:U", data_source_type, heartbeat);
+   argv[argc++] = agg_max;
+#else
    sprintf(sum,"DS:sum:%s:%d:U:U",
            data_source_type,
            heartbeat);
    argv[argc++] = sum;
+#endif
    if (summary) {
       sprintf(num,"DS:num:%s:%d:U:U", 
               data_source_type,
@@ -314,7 +346,7 @@ RRD_create( char *rrd, int summary, unsigned int step,
 /* A summary RRD has a "num" and a "sum" DS (datasource) whereas the
    host rrds only have "sum" (since num is always 1) */
 static int
-push_data_to_rrd( char *rrd, const char *sum, const char *num,
+push_data_to_rrd( char *rrd, valinfo sum, const char *num,
                   unsigned int step, unsigned int process_time,
                   ganglia_slope_t slope)
 {
@@ -357,7 +389,7 @@ push_data_to_rrd( char *rrd, const char *sum, const char *num,
 /* Assumes num argument will be NULL for a host RRD. */
 int
 write_data_to_rrd ( const char *source, const char *host, const char *metric, 
-                    const char *sum, const char *num, unsigned int step,
+                    valinfo sum, const char *num, unsigned int step,
                     unsigned int process_time, ganglia_slope_t slope)
 {
    apr_time_t start = apr_time_now(), now;
@@ -365,6 +397,9 @@ write_data_to_rrd ( const char *source, const char *host, const char *metric,
    char *summary_dir = "__SummaryInfo__";
    int i;
    int ret;
+
+   /* XXX ignore summary info */
+   if (!host) return 0;
 
    /* Build the path to our desired RRD file. Assume the rootdir exists. */
    strncpy(rrd, gmetad_config.rrd_rootdir, PATHSIZE);

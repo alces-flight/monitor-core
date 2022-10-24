@@ -121,6 +121,78 @@ fillmetric(const char** attr, Metric_t *metric, const char* type)
                      }
                   metric->valstr = addstring(metric->strings, &edge, metricval);
                   break;
+#ifdef AGG
+               case AGG_VAL_TAG:
+                  metricval = (char*) attr[i+1];
+                  tt = in_type_list(type, strlen(type));
+                  if (!tt) return;
+                  switch (tt->type)
+                     {
+                        case INT:
+                        case TIMESTAMP:
+                        case UINT:
+                        case FLOAT:
+                           metric->val.dval = (double) strtod(metricval, (char**) NULL);
+                           p = strrchr(metricval, '.');
+                           if (p) metric->precision = (short int) strlen(p+1);
+                           break;
+                        case STRING:
+                           break;
+                     }
+                  metric->agg_valstr = addstring(metric->strings, &edge, metricval);
+                  break;
+               case AGG_NUM_TAG:
+                  metricval = (char*) attr[i+1];
+                  tt = in_type_list(type, strlen(type));
+                  if (!tt) return;
+                  switch (tt->type)
+                     {
+                        case INT:
+                        case TIMESTAMP:
+                        case UINT:
+                        case FLOAT:
+                           metric->val.dnum = (double) strtod(metricval, (char**) NULL);
+                           break;
+                        case STRING:
+                           break;
+                     }
+                  metric->agg_numstr = addstring(metric->strings, &edge, metricval);
+                  break;
+               case AGG_MIN_TAG:
+                  metricval = (char*) attr[i+1];
+                  tt = in_type_list(type, strlen(type));
+                  if (!tt) return;
+                  switch (tt->type)
+                     {
+                        case INT:
+                        case TIMESTAMP:
+                        case UINT:
+                        case FLOAT:
+                           metric->val.dmin = (double) strtod(metricval, (char**) NULL);
+                           break;
+                        case STRING:
+                           break;
+                     }
+                  metric->agg_minstr = addstring(metric->strings, &edge, metricval);
+                  break;
+               case AGG_MAX_TAG:
+                  metricval = (char*) attr[i+1];
+                  tt = in_type_list(type, strlen(type));
+                  if (!tt) return;
+                  switch (tt->type)
+                     {
+                        case INT:
+                        case TIMESTAMP:
+                        case UINT:
+                        case FLOAT:
+                           metric->val.dmax = (double) strtod(metricval, (char**) NULL);
+                           break;
+                        case STRING:
+                           break;
+                     }
+                  metric->agg_maxstr = addstring(metric->strings, &edge, metricval);
+                  break;
+#endif
                case TYPE_TAG:
                   metric->type = addstring(metric->strings, &edge, attr[i+1]);
                   break;
@@ -618,16 +690,23 @@ startElement_METRIC(void *data, const char *el, const char **attr)
    ganglia_slope_t slope = GANGLIA_SLOPE_UNSPECIFIED;
    struct xml_tag *xt;
    struct type_tag *tt;
+#ifndef AGG
    datum_t *hash_datum = NULL;
+#endif
    datum_t *rdatum;
    datum_t hashkey, hashval;
    const char *name = NULL;
-   const char *metricval = NULL;
    const char *type = NULL;
    const char *units = NULL;
    int do_summary;
-   int i, edge, carbon_ret;
+#ifdef AGG
+   int i, edge;
+   valinfo metricval;
+#else
+   valinfo metricval = NULL;
    hash_t *summary;
+   int i, edge, carbon_ret;
+#endif
    Metric_t *metric;
 
    if (!xmldata->host_alive ) return 0;
@@ -645,9 +724,24 @@ startElement_METRIC(void *data, const char *el, const char **attr)
                   hashkey.data = (void*) name;
                   hashkey.size =  strlen(name) + 1;
                   break;
+#ifdef AGG
+               case AGG_VAL_TAG:
+                  metricval.agg_val = attr[i+1];
+                  break;
+               case AGG_NUM_TAG:
+                  metricval.agg_num = attr[i+1];
+                  break;
+               case AGG_MIN_TAG:
+                  metricval.agg_min = attr[i+1];
+                  break;
+               case AGG_MAX_TAG:
+                  metricval.agg_max = attr[i+1];
+                  break;
+#else
                case VAL_TAG:
                   metricval = attr[i+1];
                   break;
+#endif
                case TYPE_TAG:
                   type = attr[i+1];
                   break;
@@ -733,8 +827,10 @@ startElement_METRIC(void *data, const char *el, const char **attr)
                      xmldata->rval = write_data_to_rrd(xmldata->sourcename,
                         xmldata->hostname, name, metricval, NULL,
                         xmldata->ds->step, xmldata->source.localtime, slope);
+#ifndef AGG
 		  if (gmetad_config.carbon_server) // if the user has specified a carbon server, send the metric to carbon as well
                      carbon_ret=write_data_to_carbon(xmldata->sourcename, xmldata->hostname, name, metricval,xmldata->source.localtime);
+#endif
             }
 
          metric->id = METRIC_NODE;
@@ -763,6 +859,7 @@ startElement_METRIC(void *data, const char *el, const char **attr)
       }
 
    /* Always update summary for numeric metrics. */
+#ifndef AGG
    if (do_summary)
       {
          summary = xmldata->source.metric_summary_pending;
@@ -807,6 +904,7 @@ startElement_METRIC(void *data, const char *el, const char **attr)
          rdatum = hash_insert(&hashkey, &hashval, summary);
          if (!rdatum) err_msg("Could not insert %s metric", name);
       }
+#endif
    ganglia_scoreboard_inc(METS_RECVD_ALL);
    return 0;
 }
@@ -1149,7 +1247,16 @@ finish_processing_source(datum_t *key, datum_t *val, void *arg)
 {
    xmldata_t *xmldata = (xmldata_t *) arg;
    char *name, *type;
+#ifdef AGG
+   char agg_val[512];
+   char agg_num[512];
+   char agg_min[512];
+   char agg_max[512];
+   valinfo metricval = { agg_val, agg_num, agg_min, agg_max };
+#else
    char sum[512];
+   valinfo metricval = sum;
+#endif
    char num[256];
    Metric_t *metric;
    struct type_tag *tt;
@@ -1175,6 +1282,26 @@ finish_processing_source(datum_t *key, datum_t *val, void *arg)
    if (gmetad_config.unsummarized_sflow_vm_metrics && (p = strchr(name, '.')) != NULL && *(p+1) == 'v')
        return 0;
 
+#ifdef AGG
+   switch (tt->type)
+      {
+         case INT:
+         case UINT:
+            sprintf(agg_val, "%.f", metric->val.dval);
+            sprintf(agg_num, "%.f", metric->val.dnum);
+            sprintf(agg_min, "%.f", metric->val.dmin);
+            sprintf(agg_max, "%.f", metric->val.dmax);
+            break;
+         case FLOAT:
+            sprintf(agg_val, "%.*f", (int) metric->precision, metric->val.dval);
+            sprintf(agg_num, "%.*f", (int) metric->precision, metric->val.dnum);
+            sprintf(agg_min, "%.*f", (int) metric->precision, metric->val.dmin);
+            sprintf(agg_max, "%.*f", (int) metric->precision, metric->val.dmax);
+            break;
+         default:
+            break;
+      }
+#else
    switch (tt->type)
       {
          case INT:
@@ -1187,6 +1314,7 @@ finish_processing_source(datum_t *key, datum_t *val, void *arg)
          default:
             break;
       }
+#endif
    sprintf(num, "%u", metric->num);
 
    /* Save the data to a round robin database if this data source is 
@@ -1199,7 +1327,7 @@ finish_processing_source(datum_t *key, datum_t *val, void *arg)
 
        ganglia_scoreboard_inc(METS_SUMRZ_CLUSTER);
        xmldata->rval = write_data_to_rrd(xmldata->sourcename, NULL, name,
-                                         sum, num, xmldata->ds->step,
+                                         metricval, num, xmldata->ds->step,
                                          xmldata->source.localtime,
                                          cstr_to_slope(getfield(metric->strings, metric->slope)));
      }

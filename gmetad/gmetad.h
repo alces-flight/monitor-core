@@ -14,6 +14,18 @@
 #include "daemon_init.h"
 #include "my_inet_ntop.h"
 
+#ifdef AGG
+typedef struct {
+        const char *agg_val;
+        const char *agg_num;
+        const char *agg_min;
+        const char *agg_max;
+} agginfo;
+typedef agginfo valinfo;
+#else
+typedef const char* valinfo;
+#endif
+
 #ifdef WITH_MEMCACHED
 #include <libmemcached-1.0/memcached.h>
 #include <libmemcachedutil-1.0/util.h>
@@ -73,6 +85,10 @@ typedef enum
       METRICS_TAG,
       SUM_TAG,
       NUM_TAG,
+      AGG_VAL_TAG,
+      AGG_NUM_TAG,
+      AGG_MIN_TAG,
+      AGG_MAX_TAG,
       EXTRA_DATA_TAG,
       EXTRA_ELEMENT_TAG,
       TAGS_TAG
@@ -126,6 +142,9 @@ data_source_list_t;
 typedef union
    {
       double d;
+#ifdef AGG
+      double dval, dnum, dmin, dmax;
+#endif
       int str;
    }
 metric_val_t;
@@ -222,6 +241,12 @@ typedef struct
       metric_val_t val;
       short int name;
       short int valstr; /* An optimization to speed queries. */
+#ifdef AGG
+      short int agg_valstr;
+      short int agg_numstr;
+      short int agg_minstr;
+      short int agg_maxstr;
+#endif
       short int precision; /* Number of decimal places for floats. */
       uint32_t num;
       short int type;

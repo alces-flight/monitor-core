@@ -11,6 +11,7 @@
 #include <cmdline.h>
 
 #include <apr_time.h>
+#include <syslog.h>
 
 #include "daemon_init.h"
 #include "update_pidfile.h"
@@ -303,7 +304,9 @@ write_root_summary(datum_t *key, datum_t *val, void *arg)
    char sum[256];
    char num[256];
    Metric_t *metric;
+#ifndef AGG
    int rc;
+#endif
    struct type_tag *tt;
    llist_entry *le;
    char *p;
@@ -341,11 +344,13 @@ write_root_summary(datum_t *key, datum_t *val, void *arg)
 
    debug_msg("Writing Root Summary data for metric %s", name);
 
+#ifndef AGG
    rc = write_data_to_rrd( NULL, NULL, name, sum, num, 15, 0, metric->slope);
    if (rc)
       {
          err_msg("Unable to write meta data for metric %s to RRD", name);
       }
+#endif
    return 0;
 }
 
@@ -440,7 +445,7 @@ main ( int argc, char *argv[] )
    if (!debug_level)
       {
          rrd_umask = c->umask;
-         daemon_init (argv[0], 0, rrd_umask);
+         daemon_init (argv[0], LOG_LOCAL7, rrd_umask);
       }
 
    if (args_info.pid_file_given)

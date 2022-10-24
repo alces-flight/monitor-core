@@ -293,10 +293,22 @@ metric_report_start(Generic_t *self, datum_t *key, client_t *client, void *arg)
    char *b = buf;
    #define xml_print(client, ...) 0; b += snprintf(b, sizeof(buf) - (b - buf), __VA_ARGS__);
 
+#ifdef AGG
+   rc=xml_print(client, "<METRIC NAME=\"%s\" AGG_VAL=\"%s\" AGG_NUM=\"%s\" AGG_MIN=\"%s\" AGG_MAX=\"%s\" TYPE=\"%s\" "
+      "UNITS=\"%s\" TN=\"%u\" TMAX=\"%u\" DMAX=\"%u\" SLOPE=\"%s\" "
+      "SOURCE=\"%s\">\n",
+      name, 
+      getfield(metric->strings, metric->agg_valstr),
+      getfield(metric->strings, metric->agg_numstr),
+      getfield(metric->strings, metric->agg_minstr),
+      getfield(metric->strings, metric->agg_maxstr),
+#else
    rc=xml_print(client, "<METRIC NAME=\"%s\" VAL=\"%s\" TYPE=\"%s\" "
       "UNITS=\"%s\" TN=\"%u\" TMAX=\"%u\" DMAX=\"%u\" SLOPE=\"%s\" "
       "SOURCE=\"%s\">\n",
-      name, getfield(metric->strings, metric->valstr),
+      name, 
+      getfield(metric->strings, metric->valstr),
+#endif
       getfield(metric->strings, metric->type),
       getfield(metric->strings, metric->units),
       (unsigned int) tn,
