@@ -176,6 +176,10 @@ AC_ARG_WITH( librrd,
 [  --with-librrd=DIR       Specify location for librrd],
 [if test x"$withval" != xno; then librrd="yes"; librrdpath="$withval"; fi])
 
+AC_ARG_WITH( libtirpc,
+[  --with-libtirpc=DIR       Specify location for libtirpc],
+[if test x"$withval" != xno; then libtirpc="yes"; libtirpcpath="$withval"; fi])
+
 AC_ARG_WITH( libapr,
 [  --with-libapr=PATH      Specify location for libapr-1 or full path to apr-1-config],
 [if test x"$withval" != xno; then libapr="yes"; libaprpath="$withval"; fi])
@@ -613,6 +617,10 @@ AC_CHECK_HEADER([sys/mount.h], [], [],
 #endif
 ])
 
+if test x"$libtirpcpath" != x && test x"$libtirpcpath" != xyes; then
+  CFLAGS="$CFLAGS -I$libtirpcpath"
+  LDFLAGS="$LDFLAGS -ltirpc"
+fi
 AC_CHECK_HEADERS(rpc/types.h)
 AC_CHECK_HEADER([rpc/xdr.h], [],
    [AC_MSG_ERROR([your system is missing the Sun RPC (ONC/RPC) libraries])],
