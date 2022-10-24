@@ -1,0 +1,111 @@
+Installation (build) instructions for Alces changes
+***************************************************
+
+See INSTALL for generic ganglia installation instructions.
+
+Preparation
+===========
+
+```
+./bootstrap
+```
+
+
+Build with group aggregations
+=============================
+
+Build
+
+```
+./configure \
+    --build=x86_64-linux-gnu \
+    --prefix=/usr \
+    --includedir=\${prefix}/include \
+    --mandir=\${prefix}/share/man \
+    --infodir=\${prefix}/share/info \
+    --localstatedir=/var \
+    --disable-option-checking \
+    --disable-silent-rules \
+    --libdir=\${prefix}/lib/x86_64-linux-gnu \
+    --runstatedir=/run \
+    --disable-maintainer-mode \
+    --disable-dependency-tracking \
+    --sysconfdir=/etc/ganglia \
+    --with-gmetad \
+    --with-libtirpc=/usr/include/tirpc \
+    --enable-group-aggregations
+make
+```
+
+Create the gmetad-agg deb file
+==============================
+
+Obtain an existing gmetad-agg file; extract its contents; manually modify them
+and rebuild the deb file.
+
+```
+rm -rf /tmp/gmetad-agg_VERSION_amd64
+mkdir /tmp/gmetad-agg_VERSION_amd64
+cp <PATH TO EXISTING FILE> /tmp/gmetad-agg/gmetad-agg.deb
+cd /tmp/gmetad-agg
+dpkg-deb --control gmetad-agg.deb
+dpkg-deb --extract gmetad-agg.deb .
+rm gmetad-agg.deb
+```
+
+Update the files appropriately.  For instance; copy across a new build of the
+group aggregating `gmetad`.  Update the versions.
+
+Copy across new `gmetad-agg`:
+
+```
+cp -a <PATH TO MONITOR CORE CHECKOUT>/gmetad/.libs/gmetad /tmp/gmetad-agg_VERSION_amd64/usr/sbin/gmetad-agg
+```
+
+Update version number
+
+```
+$EDITOR DEBIAN/control
+```
+
+Once all updates are completed, update the md5sums.
+
+```
+find . -type f ! -regex '.*DEBIAN/.*' -printf '%P\0' | xargs -r0 md5sum > DEBIAN/md5sums
+```
+
+Rebuild the deb file.
+
+```
+cd ..
+dpkg-deb --build gmetad-agg_VERSION_amd64
+```
+
+The file `gmetad-agg_VERSION_amd64.deb` will build built in `/tmp`.  Upload it
+to S3.
+
+
+Build without group aggregations
+================================
+
+```
+./bootstrap
+./configure \
+    --build=x86_64-linux-gnu \
+    --prefix=/usr \
+    --includedir=\${prefix}/include \
+    --mandir=\${prefix}/share/man \
+    --infodir=\${prefix}/share/info \
+    --localstatedir=/var \
+    --disable-option-checking \
+    --disable-silent-rules \
+    --libdir=\${prefix}/lib/x86_64-linux-gnu \
+    --runstatedir=/run \
+    --disable-maintainer-mode \
+    --disable-dependency-tracking \
+    --sysconfdir=/etc/ganglia \
+    --with-gmetad \
+    --with-libtirpc=/usr/include/tirpc
+make
+```
+
